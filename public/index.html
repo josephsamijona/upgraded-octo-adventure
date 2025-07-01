@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonCash Test - Accueil</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MonCash Test</h1>
+            <p>Application de test pour l'intégration de paiements avec MonCash</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Bienvenue</h2>
+                    <p>Cette application vous permet de tester l'intégration de MonCash pour les paiements en ligne.</p>
+                </div>
+
+                <p>MonCash est le service de paiement mobile de Digicel en Haïti qui permet d'effectuer des paiements en ligne via votre téléphone portable.</p>
+                
+                <div class="actions">
+                    <a href="/checkout" class="btn primary">Faire un paiement test</a>
+                    <a href="#products" class="btn secondary">Voir les produits</a>
+                </div>
+            </div>
+            
+            <div class="card fade-in" id="products">
+                <div class="card-header">
+                    <h2>Produits disponibles</h2>
+                    <p>Sélectionnez un produit pour tester un paiement</p>
+                </div>
+                
+                <div class="grid products-grid">
+                    <!-- Les produits seront chargés dynamiquement ici -->
+                    <div class="loading-products">Chargement des produits...</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Dernières transactions</h2>
+                </div>
+                
+                <div id="transactions-list">
+                    <!-- Les transactions seront chargées dynamiquement ici -->
+                    <div class="loading-transactions">Chargement des transactions...</div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>MonCash Test &copy; 2025</p>
+            <p><small>Ceci est une application de test. Aucun paiement réel n'est effectué en mode sandbox.</small></p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Charger les produits
+            loadProducts();
+            
+            // Charger les dernières transactions
+            loadTransactions();
+        });
+        
+        // Fonction pour charger les produits
+        async function loadProducts() {
+            const productsGrid = document.querySelector('.products-grid');
+            
+            try {
+                const response = await fetch('/api/products');
+                const data = await response.json();
+                
+                if (data.success && data.products && data.products.length > 0) {
+                    productsGrid.innerHTML = '';
+                    
+                    data.products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'card product-card';
+                        
+                        productCard.innerHTML = `
+                            <div class="product-image-container">
+                                <img src="${product.imageUrl || 'https://via.placeholder.com/300x200?text=Produit'}" alt="${product.name}" class="product-image">
+                            </div>
+                            <div class="product-content">
+                                <h3 class="product-title">${product.name}</h3>
+                                <p class="product-description">${product.description || 'Aucune description disponible'}</p>
+                                <div class="product-price">${product.price} HTG</div>
+                                <div class="product-action">
+                                    <a href="/checkout?productId=${product.id}" class="btn primary">Acheter maintenant</a>
+                                </div>
+                            </div>
+                        `;
+                        
+                        productsGrid.appendChild(productCard);
+                    });
+                } else {
+                    productsGrid.innerHTML = '<p>Aucun produit disponible.</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des produits:', error);
+                productsGrid.innerHTML = '<p class="error">Erreur lors du chargement des produits.</p>';
+            }
+        }
+        
+        // Fonction pour charger les transactions
+        async function loadTransactions() {
+            const transactionsList = document.getElementById('transactions-list');
+            
+            try {
+                const response = await fetch('/api/moncash/transactions');
+                const data = await response.json();
+                
+                if (data.success && data.transactions && data.transactions.length > 0) {
+                    const table = document.createElement('table');
+                    
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Description</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.transactions.map(transaction => `
+                                <tr>
+                                    <td>${new Date(transaction.createdAt).toLocaleString()}</td>
+                                    <td>${transaction.amount} HTG</td>
+                                    <td>${transaction.description || '-'}</td>
+                                    <td class="status-${transaction.status}">${transaction.status}</td>
+                                    <td>
+                                        ${transaction.transactionId ? 
+                                            `<a href="/api/moncash/return?transactionId=${transaction.transactionId}" class="btn-small">Détails</a>` : 
+                                            '<span class="disabled">Pas de détails</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    
+                    transactionsList.innerHTML = '';
+                    transactionsList.appendChild(table);
+                } else {
+                    transactionsList.innerHTML = '<p>Aucune transaction récente.</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des transactions:', error);
+                transactionsList.innerHTML = '<p class="error">Erreur lors du chargement des transactions.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

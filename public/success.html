@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonCash Test - Paiement réussi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Merci pour votre paiement!</h1>
+            <p>Votre transaction MonCash a été traitée avec succès</p>
+        </header>
+
+        <main>
+            <div class="card success-card fade-in">
+                <div class="success-icon">✓</div>
+                <h2>Paiement réussi</h2>
+                <p>Nous avons bien reçu votre paiement. Merci de votre confiance!</p>
+                
+                <div id="transaction-details" class="transaction-details">
+                    <!-- Les détails de la transaction seront chargés ici -->
+                </div>
+                
+                <div class="actions">
+                    <a href="/" class="btn primary">Retour à l'accueil</a>
+                    <a href="/checkout" class="btn secondary">Effectuer un autre paiement</a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Que se passe-t-il maintenant?</h3>
+                <p>Dans une application réelle, plusieurs actions pourraient se produire après un paiement réussi:</p>
+                
+                <ul>
+                    <li>Envoi d'un email de confirmation</li>
+                    <li>Mise à jour du statut de la commande</li>
+                    <li>Génération d'une facture</li>
+                    <li>Préparation de la livraison du produit</li>
+                    <li>Enregistrement des points de fidélité</li>
+                </ul>
+                
+                <p>Cette page sert uniquement de démonstration pour l'intégration MonCash.</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>MonCash Test &copy; 2025</p>
+            <p><small>Mode: <span id="moncash-mode">sandbox</span></small></p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Récupérer les paramètres de l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const transactionId = urlParams.get('transactionId');
+            const orderId = urlParams.get('orderId');
+            
+            // Afficher le mode MonCash
+            const modeElement = document.getElementById('moncash-mode');
+            if (modeElement) {
+                // Vérifier si le mode est disponible dans localStorage (optionnel)
+                const mode = localStorage.getItem('moncash_mode') || 'sandbox';
+                modeElement.textContent = mode;
+            }
+            
+            // Si un ID de transaction est disponible, récupérer les détails
+            if (transactionId) {
+                fetchTransactionDetails(transactionId);
+            } else if (orderId) {
+                fetchOrderDetails(orderId);
+            } else {
+                // Essayer de récupérer l'ordre depuis localStorage
+                const storedOrderId = localStorage.getItem('moncash_orderId');
+                if (storedOrderId) {
+                    fetchOrderDetails(storedOrderId);
+                } else {
+                    // Pas d'identifiant disponible, masquer la section détails
+                    const detailsElement = document.getElementById('transaction-details');
+                    if (detailsElement) {
+                        detailsElement.style.display = 'none';
+                    }
+                }
+            }
+        });
+        
+        // Fonction pour récupérer les détails d'une transaction
+        async function fetchTransactionDetails(transactionId) {
+            const detailsElement = document.getElementById('transaction-details');
+            if (!detailsElement) return;
+            
+            detailsElement.innerHTML = '<p class="loading">Chargement des détails de la transaction...</p>';
+            
+            try {
+                const response = await fetch(`/api/moncash/transaction/${transactionId}`);
+                const data = await response.json();
+                
+                if (data.success && data.payment) {
+                    const payment = data.payment;
+                    
+                    detailsElement.innerHTML = `
+                        <div class="detail-row">
+                            <span class="label">Transaction ID:</span>
+                            <span class="value">${payment.transaction_id}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Référence:</span>
+                            <span class="value">${payment.reference}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Montant:</span>
+                            <span class="value">${payment.cost} HTG</span>
+                        </div>
+                        ${payment.payer ? `
+                        <div class="detail-row">
+                            <span class="label">Téléphone payeur:</span>
+                            <span class="value">${payment.payer}</span>
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                            <span class="label">Date:</span>
+                            <span class="value">${new Date(payment.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Statut:</span>
+                            <span class="value status-${payment.message}">${payment.message}</span>
+                        </div>
+                    `;
+                    
+                    // Nettoyer localStorage
+                    cleanupStorage();
+                } else {
+                    detailsElement.innerHTML = '<p class="error">Impossible de récupérer les détails de la transaction.</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des détails de la transaction:', error);
+                detailsElement.innerHTML = '<p class="error">Erreur lors de la récupération des détails.</p>';
+            }
+        }
+        
+        // Fonction pour récupérer les détails d'une commande
+        async function fetchOrderDetails(orderId) {
+            const detailsElement = document.getElementById('transaction-details');
+            if (!detailsElement) return;
+            
+            detailsElement.innerHTML = '<p class="loading">Chargement des détails de la commande...</p>';
+            
+            try {
+                const response = await fetch(`/api/moncash/order/${orderId}`);
+                const data = await response.json();
+                
+                if (data.success && data.payment) {
+                    const payment = data.payment;
+                    
+                    detailsElement.innerHTML = `
+                        <div class="detail-row">
+                            <span class="label">Transaction ID:</span>
+                            <span class="value">${payment.transaction_id}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Référence:</span>
+                            <span class="value">${payment.reference}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Montant:</span>
+                            <span class="value">${payment.cost} HTG</span>
+                        </div>
+                        ${payment.payer ? `
+                        <div class="detail-row">
+                            <span class="label">Téléphone payeur:</span>
+                            <span class="value">${payment.payer}</span>
+                        </div>
+                        ` : ''}
+                        <div class="detail-row">
+                            <span class="label">Date:</span>
+                            <span class="value">${new Date(payment.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Statut:</span>
+                            <span class="value status-${payment.message}">${payment.message}</span>
+                        </div>
+                    `;
+                    
+                    // Nettoyer localStorage
+                    cleanupStorage();
+                } else {
+                    detailsElement.innerHTML = '<p class="error">Impossible de récupérer les détails de la commande.</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des détails de la commande:', error);
+                detailsElement.innerHTML = '<p class="error">Erreur lors de la récupération des détails.</p>';
+            }
+        }
+        
+        // Nettoyage des données temporaires
+        function cleanupStorage() {
+            localStorage.removeItem('moncash_orderId');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonCash Test - Paiement</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Paiement MonCash</h1>
+            <p>Testez l'intégration de paiement avec MonCash</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Informations de paiement</h2>
+                    <p>Remplissez les informations ci-dessous pour effectuer un paiement test</p>
+                </div>
+                
+                <!-- Zone d'informations du produit (s'affiche uniquement si un produit est sélectionné) -->
+                <div id="product-info" class="product-details" style="display: none;">
+                    <!-- Les détails du produit seront chargés ici dynamiquement -->
+                </div>
+                
+                <!-- Formulaire de paiement -->
+                <form id="paymentForm">
+                    <div class="form-group">
+                        <label for="amount">Montant (HTG)</label>
+                        <input type="number" id="amount" name="amount" min="10" step="1" value="10" required>
+                        <small>Montant minimum: 10 HTG</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description" name="description" placeholder="Description du paiement">
+                        <small>Une description courte de la raison du paiement</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" id="payButton" class="btn-moncash">
+                            <img src="https://moncashbutton.digicelgroup.com/Moncash-business/resources/img/MC_button.png" alt="MonCash" class="moncash-logo">
+                            Payer avec MonCash
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Message de statut -->
+                <div id="paymentStatus" class="status-message hidden"></div>
+            </div>
+            
+            <!-- Instructions MonCash -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Comment ça marche?</h2>
+                </div>
+                
+                <div class="how-it-works">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Remplissez le formulaire</h3>
+                            <p>Entrez le montant et une description pour votre paiement.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Cliquez sur "Payer avec MonCash"</h3>
+                            <p>Vous serez redirigé vers la plateforme de paiement MonCash.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Entrez votre numéro MonCash</h3>
+                            <p>Sur la plateforme MonCash, entrez votre numéro de téléphone et confirmez le paiement.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Confirmation</h3>
+                            <p>Après le paiement, vous serez redirigé vers la page de confirmation.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="note">
+                    <p><strong>Note:</strong> En mode Sandbox, aucun vrai paiement n'est effectué. Vous pouvez utiliser n'importe quel numéro de téléphone valide pour tester.</p>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <a href="/" class="btn secondary">Retour à l'accueil</a>
+                <button id="testConnection" class="btn primary">Tester la connexion MonCash</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>MonCash Test &copy; 2025</p>
+            <p><small>Ceci est une application de test. Aucun paiement réel n'est effectué en mode sandbox.</small></p>
+        </footer>
+    </div>
+
+    <style>
+        /* Styles spécifiques à la page de checkout */
+        .how-it-works {
+            margin: 20px 0;
+        }
+        
+        .step {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+        
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex-grow: 1;
+        }
+        
+        .step-content h3 {
+            margin-bottom: 5px;
+        }
+        
+        .note {
+            background-color: #FFF8E1;
+            padding: 15px;
+            border-left: 4px solid var(--warning-color);
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .product-details {
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f5f9ff;
+            border-radius: var(--radius);
+            border: 1px solid #d0e1ff;
+        }
+        
+        .product-image {
+            max-width: 200px;
+            display: block;
+            margin: 10px 0;
+            border-radius: var(--radius);
+        }
+    </style>
+
+    <script src="js/payment.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Vérifier si un productId est présent dans l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('productId');
+            
+            if (productId) {
+                loadProductDetails(productId);
+            }
+            
+            // Tester la connexion MonCash
+            document.getElementById('testConnection').addEventListener('click', testMonCashConnection);
+        });
+        
+        // Charger les détails d'un produit
+        async function loadProductDetails(productId) {
+            const productInfoElement = document.getElementById('product-info');
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`);
+                const data = await response.json();
+                
+                if (data.success && data.product) {
+                    const product = data.product;
+                    
+                    // Afficher les détails du produit
+                    productInfoElement.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>${product.description || 'Aucune description disponible'}</p>
+                        ${product.imageUrl ? `<img src="${product.imageUrl}" alt="${product.name}" class="product-image">` : ''}
+                        <p class="product-price">${product.price} HTG</p>
+                    `;
+                    productInfoElement.style.display = 'block';
+                    
+                    // Mettre à jour le formulaire
+                    document.getElementById('amount').value = product.price;
+                    document.getElementById('amount').disabled = true;
+                    
+                    document.getElementById('description').value = `Achat de ${product.name}`;
+                    
+                    // Stocker l'ID du produit pour le paiement
+                    document.getElementById('paymentForm').dataset.productId = product.id;
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement du produit:', error);
+                productInfoElement.innerHTML = '<p class="error">Erreur lors du chargement des détails du produit.</p>';
+                productInfoElement.style.display = 'block';
+            }
+        }
+        
+        // Tester la connexion à l'API MonCash
+        async function testMonCashConnection() {
+            const testButton = document.getElementById('testConnection');
+            const statusElement = document.getElementById('paymentStatus');
+            
+            // Afficher le chargement
+            testButton.disabled = true;
+            testButton.innerHTML = '<span class="spinner"></span> Test en cours...';
+            statusElement.className = 'status-message loading';
+            statusElement.textContent = 'Test de connexion à MonCash en cours...';
+            statusElement.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/moncash/test');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusElement.className = 'status-message success';
+                    statusElement.textContent = `Connexion MonCash réussie! Mode: ${data.mode}`;
+                } else {
+                    statusElement.className = 'status-message error';
+                    statusElement.textContent = `Erreur de connexion: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Erreur lors du test de connexion:', error);
+                statusElement.className = 'status-message error';
+                statusElement.textContent = 'Erreur de connexion au serveur';
+            } finally {
+                // Réinitialiser le bouton
+                testButton.disabled = false;
+                testButton.textContent = 'Tester la connexion MonCash';
+                
+                // Masquer le message après 5 secondes
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
